@@ -46,7 +46,7 @@ const askQuestions = () => {
                   viewAllEmployees();
                 break;
                 case 'View All Employees By Department':
-
+                  viewAllEmployeesByDept();
                 break;
                 case 'View All Employees By Manager':
 
@@ -98,8 +98,70 @@ const viewAllEmployees = () => {
     
   console.log(table);
 
+  askQuestions();
+
   });
 
+}
+
+const viewAllEmployeesByDept = () => {
+  inquirer
+  .prompt([
+      {
+        type: 'list',
+        name: 'dept',
+        message: 'Which department would you like to view?',
+        choices: [
+          'Sales',
+          'Engineering',
+          'Finance',
+          'Legal',
+          'Cancel'
+        ]
+    }
+  ])
+  .then(answer => {
+      const { dept } = answer;
+      if (dept !== 'Cancel') {
+        viewDept(dept);
+      }
+      else {
+        endExecution();
+      }
+  });
+}
+
+const viewDept = (dept) => {
+  const query = new Queries();
+  const viewAllEmployeesByDept = query.viewAllEmployeesByDept(dept);
+
+  connection.query(viewAllEmployeesByDept, [dept], (err, res) => {
+
+    if (err) throw err;
+
+    let dataTable = [];
+
+    for (let i = 0; i < res.length; i++) {
+      const { id, first_name, last_name, title, department, salary, manager } = res[i];
+      const obj = {};
+      obj["id"] = id;
+      obj["first_name"] = first_name;
+      obj["last_name"] = last_name;
+      obj["title"] = title;
+      obj["department"] = department;
+      obj["salary"] = salary;
+      obj["manager"] = manager;
+
+      dataTable.push(obj);
+    }
+
+  const table = cTable.getTable(dataTable);
+    
+  console.log(table);
+
+  askQuestions();
+
+  });
 }
 
 const endExecution = () => {

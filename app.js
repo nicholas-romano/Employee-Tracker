@@ -47,7 +47,7 @@ const askQuestions = () => {
                   viewAllEmployeesByMgr();
                 break;
                 case 'Add Employee':
-                    
+                  addEmployee();
                 break;
                 case 'Remove Employee':
 
@@ -65,7 +65,6 @@ const askQuestions = () => {
       });
 
 }
-
 
 const viewAllEmployees = () => {
 
@@ -105,19 +104,32 @@ const viewAllEmployees = () => {
 }
 
 const viewAllEmployeesByDept = () => {
-    inquirer
+
+    const query = new Queries();
+    const viewAllDepartments = query.viewAllDepartments();
+
+    let deptList = [];
+
+    database.query(viewAllDepartments).then(rows => {
+
+        for (let i = 0; i < rows.length; i++) {
+            deptList.push(rows[i].department);
+        }
+
+        deptList.push('Cancel');
+
+        return deptList;
+
+    }).then(deptList => {
+        console.log(`deptList ${deptList}`);
+
+        inquirer
         .prompt([
             {
                 type: 'list',
                 name: 'dept',
                 message: 'Which department would you like to view?',
-                choices: [
-                'Sales',
-                'Engineering',
-                'Finance',
-                'Legal',
-                'Cancel'
-                ]
+                choices: deptList
             }
         ])
         .then(answer => {
@@ -129,6 +141,10 @@ const viewAllEmployeesByDept = () => {
                 endExecution();
             }
         });
+
+    });
+
+    
 }
 
 const viewDept = (dept) => {
@@ -177,16 +193,16 @@ const viewAllEmployeesByMgr = () => {
   
     database.query(viewAllManagers).then(rows => {
 
-    for (let i = 0; i < rows.length; i++) {
-        managersList.push(rows[i].manager);
-    }
+        for (let i = 0; i < rows.length; i++) {
+            managersList.push(rows[i].manager);
+        }
 
-    managersList.push('Cancel');
+        managersList.push('Cancel');
 
-    return managersList;
+        return managersList;
 
     }).then(managersList => {
-        console.log(`managersList ${managersList}`)
+        console.log(`managersList ${managersList}`);
         
          inquirer
               .prompt([
@@ -251,6 +267,128 @@ const viewMgr = mgr => {
     }).catch(err => {
         console.log(err);
     });
+
+}
+
+const addEmployee = () => {
+
+    const query = new Queries();
+    const viewAllManagers = query.viewAllManagers();
+
+    let managersList = [];
+  
+    database.query(viewAllManagers).then(rows => {
+
+        managersList.push('None');
+
+        for (let i = 0; i < rows.length; i++) {
+            managersList.push(rows[i].manager);
+        }
+
+        return managersList;
+
+    }).then(managersList => {
+
+        inquirer
+            .prompt([
+                // {
+                //     type: 'input',
+                //     name: 'first_name',
+                //     message: 'What is this employee\'s first name?',
+                // },
+                // {
+                //     type: 'input',
+                //     name: 'last_name',
+                //     message: 'What is this employee\'s last name?',
+                // },
+                {
+                    type: 'input',
+                    name: 'department',
+                    message: 'What department does this employee work in?',
+                },
+                {
+                    type: 'input',
+                    name: 'title',
+                    message: 'What is this employee\'s job title?',
+                },
+                {
+                    type: 'input',
+                    name: 'salary',
+                    message: 'What is this employee\'s salary?',
+                },
+                // {
+                //     type: 'list',
+                //     name: 'manager',
+                //     message: 'Who is this employee\'s manager?',
+                //     choices: managersList
+                // }
+            ])
+            .then(answers => {
+
+                //let department = answers.department;
+
+                //let { first_name, last_name, department, title, salary, manager} = answers;
+                let { department, salary, title } = answers;
+
+                department = initialCaps(department);
+                title = initialCaps(title);
+
+                let department_id;
+                let title_id;
+                let manager_id;
+
+                const query = new Queries();
+                const insertOrIgnoreDepartment = query.insertOrIgnoreDepartment();
+
+                database.query(insertOrIgnoreDepartment, department).then(rows => {
+
+                    if (rows.insertId !== 0) {
+                        console.log(rows, " inserted");
+                    }
+                    else {
+                        console.log("this department already exists");
+                    }
+
+                    const query = new Queries();
+                    const viewDepartmentIdByName = query.viewDepartmentIdByName();
+
+                    return database.query(viewDepartmentIdByName, department);
+
+                }).then(rows => {
+
+                    for (let i = 0; i < rows.length; i++) {
+                        department_id = rows[i].id;
+                    }
+
+                    console.log(department_id, " dept id of inserted row");
+                  
+                    const query = new Queries();
+                    const insertOrIgnoreRole = query.insertOrIgnoreRole();
+
+                    return database.query(insertOrIgnoreRole, [title, salary, department_id]);
+
+                }).then(rows => {
+                    console.log(rows, " inserted");
+                    console.log(rows.insertId, " = id");
+                });
+
+            });
+
+    });
+
+}
+
+const initialCaps = word => {
+
+    let first_letter = word.substr(0, 1);
+
+    let first_letter_cap = first_letter.toUpperCase();
+
+    let restOfString = word.substr(1);
+
+    let full_word = first_letter_cap + restOfString;
+
+    return full_word;
 
 }
 

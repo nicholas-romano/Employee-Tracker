@@ -10,6 +10,9 @@ role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM 
 LEFT JOIN role on employee.role_id = role.id 
 LEFT JOIN department dept on role.department_id = dept.id 
 LEFT JOIN employee manager on manager.id = employee.manager_id;
+
+-- View All Departments --
+SELECT department.name AS department FROM department;
  
 -- View All Employees by Department --
 SELECT employee.id, employee.first_name, employee.last_name, role.title, dept.name AS department, 
@@ -25,8 +28,11 @@ SELECT employee.manager_id FROM employee WHERE employee.manager_id IS NOT NULL;
 -- View Manager's Employees by ID --
 SELECT employee.first_name, employee.last_name FROM employee WHERE employee.id = 3;
 
+-- View Manager ID by Name --
+SELECT employee.id AS manager_id FROM employee WHERE employee.first_name = 'Ashley' AND employee.last_name = 'Rodriguez';
+
 -- View All Managers --
-SELECT DISTINCT CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee 
+SELECT DISTINCT employee.manager_id AS manager_id, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee 
 LEFT JOIN employee manager on manager.id = employee.manager_id
 WHERE employee.manager_id IS NOT NULL;
  
@@ -37,3 +43,6 @@ LEFT JOIN role on employee.role_id = role.id
 LEFT JOIN department dept on role.department_id = dept.id 
 LEFT JOIN employee manager on manager.id = employee.manager_id
 WHERE manager.first_name = 'Ashley' AND manager.last_name = 'Rodriguez';
+
+-- Insert New Department if it doesn't already exist --
+INSERT INTO role (title) VALUES ('Lawyer');

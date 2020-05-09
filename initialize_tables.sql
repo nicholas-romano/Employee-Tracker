@@ -26,6 +26,11 @@ CREATE TABLE role(
 );
 
 ALTER TABLE department ADD UNIQUE (name);
+ALTER TABLE role ADD UNIQUE (title);
+
+SHOW INDEX FROM role;
+
+DROP INDEX title ON role;
 
 SELECT * FROM employee;
 SELECT * FROM department;

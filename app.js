@@ -26,6 +26,8 @@ const askQuestions = () => {
                   'View All Employees',
                   'View All Employees By Department',
                   'View All Employees By Manager',
+                  'Add Department',
+                  'Add Role',
                   'Add Employee',
                   'Remove Employee',
                   'Update Employee Role',
@@ -45,6 +47,12 @@ const askQuestions = () => {
                 break;
                 case 'View All Employees By Manager':
                   viewAllEmployeesByMgr();
+                break;
+                case 'Add Department':
+                  addDepartment();
+                break;
+                case 'Add Role':
+                  addRole();
                 break;
                 case 'Add Employee':
                   addEmployee();
@@ -121,30 +129,26 @@ const viewAllEmployeesByDept = () => {
         return deptList;
 
     }).then(deptList => {
-        console.log(`deptList ${deptList}`);
-
         inquirer
-        .prompt([
-            {
-                type: 'list',
-                name: 'dept',
-                message: 'Which department would you like to view?',
-                choices: deptList
-            }
-        ])
-        .then(answer => {
-            const { dept } = answer;
-            if (dept !== 'Cancel') {
-                viewDept(dept);
-            }
-            else {
-                endExecution();
-            }
-        });
-
+            .prompt([
+                {
+                    type: 'list',
+                    name: 'dept',
+                    message: 'Which department would you like to view?',
+                    choices: deptList
+                }
+            ])
+            .then(answer => {
+                const { dept } = answer;
+                if (dept !== 'Cancel') {
+                    viewDept(dept);
+                }
+                else {
+                    endExecution();
+                }
+            });
     });
-
-    
+        
 }
 
 const viewDept = (dept) => {
@@ -270,106 +274,238 @@ const viewMgr = mgr => {
 
 }
 
+const addDepartment = () => {
+    inquirer
+    .prompt([
+        {
+            type: 'input',
+            name: 'department',
+            message: 'Enter the name of the department you would like to add.',
+        }
+    ])
+    .then(answers => {
+        let department = answers.department;
+
+        department = initialCaps(department);
+
+        const query = new Queries();
+        const insertOrIgnoreDepartment = query.insertOrIgnoreDepartment();
+
+        database.query(insertOrIgnoreDepartment, department).then(rows => {
+
+            if (rows.insertId !== 0) {
+                console.log(rows, " inserted");
+                console.log("New Department added");
+            }
+            else {
+                console.log("this department already exists. Please enter a different name.");
+                addDepartment();
+            }
+
+        }).then(() => {
+            askQuestions();
+        });
+
+    });
+}
+
+const addRole = () => {
+
+    
+
+    const query = new Queries();
+    const viewAllDepartments = query.viewAllDepartments();
+
+    let deptList = [];
+    let dept_id;
+
+    database.query(viewAllDepartments).then(rows => {
+
+        for (let i = 0; i < rows.length; i++) {
+            deptList.push(rows[i].department);
+        }
+
+        return deptList;
+
+    }).then(deptList => {
+
+        inquirer
+        .prompt([
+            {
+                type: 'input',
+                name: 'title',
+                message: 'Enter the name of the role you would like to add:',
+            },
+            {
+                type: 'input',
+                name: 'salary',
+                message: 'What is this salary for this role?',
+            },
+            {
+                type: 'list',
+                name: 'dept',
+                message: 'Select a department where this role belongs to:',
+                choices: deptList
+            }
+        ])
+        .then(answers => {
+
+                let { title, salary, dept } = answers;
+
+                title = initialCaps(title);
+                dept = initialCaps(dept);
+
+                const query = new Queries();
+                const viewDepartmentIdByName = query.viewDepartmentIdByName();
+
+            database.query(viewDepartmentIdByName, dept).then(rows => {
+
+                dept_id = rows[0].id;
+
+                if (dept_id === undefined) {
+                    console.log("The department you entered was not found.")
+                    addRole();
+                }
+
+                const query = new Queries();
+                const insertOrIgnoreRole = query.insertOrIgnoreRole();
+
+                return database.query(insertOrIgnoreRole, [title, salary, dept_id]);
+
+            }).then(rows => {
+
+                    if (rows.insertId !== 0) {
+                        console.log(rows, " inserted");
+                        console.log("New role added.");
+                    }
+                    else {
+                        console.log("This role already exists. Please enter a different name.");
+                        addRole();
+                    }
+
+            }).then(() => {
+                    askQuestions();
+            });
+
+        });
+
+    });
+
+}
+
 const addEmployee = () => {
 
     const query = new Queries();
-    const viewAllManagers = query.viewAllManagers();
+    const viewAllRolls = query.viewAllRolls();
 
+    let jobTitleList = [];
     let managersList = [];
+    let managersArray = [];
   
-    database.query(viewAllManagers).then(rows => {
+    database.query(viewAllRolls).then(rows => {
+
+        for (let i = 0; i < rows.length; i++) {
+            jobTitleList.push(rows[i].title);
+        }
+
+        const query = new Queries();
+        const viewAllManagers = query.viewAllManagers();
+
+        return database.query(viewAllManagers);
+
+    }).then(rows => {
 
         managersList.push('None');
 
         for (let i = 0; i < rows.length; i++) {
             managersList.push(rows[i].manager);
+            managersArray.push(rows[i]);
         }
 
-        return managersList;
+        console.log("managersList: ", managersList);
+        console.log("jobTitleList: ", jobTitleList);
+        console.log("managersArray: ", managersArray);
 
-    }).then(managersList => {
+        let role_id;
 
         inquirer
             .prompt([
-                // {
-                //     type: 'input',
-                //     name: 'first_name',
-                //     message: 'What is this employee\'s first name?',
-                // },
-                // {
-                //     type: 'input',
-                //     name: 'last_name',
-                //     message: 'What is this employee\'s last name?',
-                // },
                 {
                     type: 'input',
-                    name: 'department',
-                    message: 'What department does this employee work in?',
+                    name: 'first_name',
+                    message: 'What is this employee\'s first name?',
                 },
                 {
                     type: 'input',
+                    name: 'last_name',
+                    message: 'What is this employee\'s last name?',
+                },
+                {
+                    type: 'list',
                     name: 'title',
-                    message: 'What is this employee\'s job title?',
+                    message: 'Select a job title for this employee',
+                    choices: jobTitleList
                 },
                 {
-                    type: 'input',
-                    name: 'salary',
-                    message: 'What is this employee\'s salary?',
-                },
-                // {
-                //     type: 'list',
-                //     name: 'manager',
-                //     message: 'Who is this employee\'s manager?',
-                //     choices: managersList
-                // }
+                    type: 'list',
+                    name: 'manager',
+                    message: 'Who is this employee\'s manager?',
+                    choices: managersList
+                }
             ])
             .then(answers => {
 
-                //let department = answers.department;
+                let { first_name, last_name, title, manager } = answers;
 
-                //let { first_name, last_name, department, title, salary, manager} = answers;
-                let { department, salary, title } = answers;
+                first_name = initialCaps(first_name);
+                last_name = initialCaps(last_name);
 
-                department = initialCaps(department);
-                title = initialCaps(title);
-
-                let department_id;
-                let title_id;
-                let manager_id;
+                console.log(`
+                    ${first_name}, ${last_name}, ${title}, ${manager}
+                `);
 
                 const query = new Queries();
-                const insertOrIgnoreDepartment = query.insertOrIgnoreDepartment();
+                const viewRoleIdByName = query.viewRoleIdByName();
+            
+                database.query(viewRoleIdByName, title).then(rows => {
 
-                database.query(insertOrIgnoreDepartment, department).then(rows => {
+                    console.log("role id: " + rows[0].id);
 
-                    if (rows.insertId !== 0) {
-                        console.log(rows, " inserted");
+                    role_id = rows[0].id;
+
+                    let manager_id;
+
+                    if (manager !== 'None') {
+
+                        for (let i = 0; i < managersArray.length; i++) {
+                            if (managersArray[i].manager === manager) {
+                                manager_id = managersArray[i].manager_id;
+                            }
+                        }
+
                     }
                     else {
-                        console.log("this department already exists");
+                        manager_id = null;
                     }
-
+                    
                     const query = new Queries();
-                    const viewDepartmentIdByName = query.viewDepartmentIdByName();
+                    const insertNewEmployee = query.insertNewEmployee();
 
-                    return database.query(viewDepartmentIdByName, department);
+                    return database.query(insertNewEmployee, [first_name, last_name, role_id, manager_id]);
 
                 }).then(rows => {
-
-                    for (let i = 0; i < rows.length; i++) {
-                        department_id = rows[i].id;
+                    
+                    if (rows.insertId !== 0) {
+                        console.log(rows, " inserted");
+                        console.log("New employee added.");
+                    }
+                    else {
+                        console.log("Unable to add new employee.");
+                        addRole();
                     }
 
-                    console.log(department_id, " dept id of inserted row");
-                  
-                    const query = new Queries();
-                    const insertOrIgnoreRole = query.insertOrIgnoreRole();
-
-                    return database.query(insertOrIgnoreRole, [title, salary, department_id]);
-
-                }).then(rows => {
-                    console.log(rows, " inserted");
-                    console.log(rows.insertId, " = id");
+                }).then(() => {
+                    askQuestions();
                 });
 
             });

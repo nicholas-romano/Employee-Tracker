@@ -46,3 +46,30 @@ WHERE manager.first_name = 'Ashley' AND manager.last_name = 'Rodriguez';
 
 -- Insert New Department if it doesn't already exist --
 INSERT INTO role (title) VALUES ('Lawyer');
+
+-- Select department Id by department name --
+SELECT department.id FROM department WHERE department.name = 'Sales';
+
+-- View Title id by Name --
+SELECT role.id FROM role WHERE role.title = 'Lawyer';
+
+-- View department id by name --
+SELECT department.id FROM department WHERE department.name = 'IT';
+
+SELECT * FROM employee;
+SELECT * FROM department;
+SELECT * FROM role;
+
+delete from department where department.id = 5;
+delete from role where role.id = 8;
+
+ALTER TABLE department AUTO_INCREMENT = 5;
+ALTER TABLE role AUTO_INCREMENT = 8;
+
+SELECT department.id FROM department WHERE department.name = 'Engineering';
+
+ALTER TABLE department AUTO_INCREMENT = 5;
+ALTER TABLE role AUTO_INCREMENT = 8;
+
+-- Display all role titles -- 
+SELECT title from role;

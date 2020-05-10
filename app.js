@@ -254,12 +254,10 @@ const viewAllEmployeesByMgr = () => {
 }
 
 const viewMgr = mgr => {
-    //console.log(`manager selected: ${mgr}`)
 
-    const index = mgr.indexOf(" ");
-
-    const first_name = mgr.substring(0, index);
-    const last_name = mgr.substr(index + 1);
+    let e_full_name = splitName(employee);
+    let first_name = e_full_name[0];
+    let last_name = e_full_name[1];
 
     const query = new Queries();
     const viewAllEmployeesByManager = query.viewAllEmployeesByManager();
@@ -303,6 +301,7 @@ const addDepartment = () => {
             type: 'input',
             name: 'department',
             message: 'Enter the name of the department you would like to add:',
+            validate: requireLetters
         }
     ])
     .then(answers => {
@@ -362,11 +361,13 @@ const addRole = () => {
                 type: 'input',
                 name: 'title',
                 message: 'Enter the name of the role you would like to add:',
+                validate: requireLetters
             },
             {
                 type: 'input',
                 name: 'salary',
                 message: 'What is this salary for this role?',
+                validate: requireNumbers
             },
             {
                 type: 'list',
@@ -463,11 +464,13 @@ const addEmployee = () => {
                     type: 'input',
                     name: 'first_name',
                     message: 'What is this employee\'s first name?',
+                    validate: requireLetters
                 },
                 {
                     type: 'input',
                     name: 'last_name',
                     message: 'What is this employee\'s last name?',
+                    validate: requireLetters
                 },
                 {
                     type: 'list',
@@ -498,9 +501,9 @@ const addEmployee = () => {
 
                     if (manager !== 'None') {
 
-                        const index = manager.indexOf(' ');
-                        const first_name = manager.substr(0, index);
-                        const last_name = manager.substr(index + 1);
+                        let e_full_name = splitName(employee);
+                        let first_name = e_full_name[0];
+                        let last_name = e_full_name[1];
 
                         const query = new Queries();
                         const viewEmployeeIdByName = query.viewEmployeeIdByName();
@@ -585,9 +588,9 @@ const removeEmployee = () => {
 
                 const employee = answer.employee;
 
-                const index = employee.indexOf(' ');
-                const first_name = employee.substr(0, index);
-                const last_name = employee.substr(index + 1);
+                let e_full_name = splitName(employee);
+                let first_name = e_full_name[0];
+                let last_name = e_full_name[1];
 
                 const query = new Queries();
                 const viewEmployeeIdByName = query.viewEmployeeIdByName();
@@ -669,9 +672,9 @@ const updateEmployeeRole = () => {
             .then(answer => {
                 const { employee } = answer;
 
-                const index = employee.indexOf(' ');
-                const first_name = employee.substr(0, index);
-                const last_name = employee.substr(index + 1);
+                let e_full_name = splitName(employee);
+                first_name = e_full_name[0];
+                last_name = e_full_name[1];
                 
                 const query = new Queries();
                 const viewEmployeeIdByName = query.viewEmployeeIdByName();
@@ -744,6 +747,8 @@ const updateEmployeeManager = () => {
     let managersList = [];
     let employee_id;
     let manager_id;
+    let e_first_name;
+    let e_last_name;
     let m_first_name;
     let m_last_name;
 
@@ -793,14 +798,14 @@ const updateEmployeeManager = () => {
 
             const { employee, manager } = answers;
 
-            const index = employee.indexOf(' ');
-            const first_name = employee.substr(0, index);
-            const last_name = employee.substr(index + 1);
+            let e_full_name = splitName(employee);
+            e_first_name = e_full_name[0];
+            e_last_name = e_full_name[1];
 
             if (manager !== 'None') {
-                const index2 = manager.indexOf(' ');
-                m_first_name = manager.substr(0, index2);
-                m_last_name = manager.substr(index2 + 1);
+                const m_full_name = splitName(manager);
+                m_first_name = m_full_name[0];
+                m_last_name = m_full_name[1];
             }
             else {
                 manager_id = null;
@@ -809,7 +814,7 @@ const updateEmployeeManager = () => {
             const query = new Queries();
             const viewEmployeeIdByName = query.viewEmployeeIdByName();
 
-            database.query(viewEmployeeIdByName, [first_name, last_name]).then(rows => {
+            database.query(viewEmployeeIdByName, [e_first_name, e_last_name]).then(rows => {
 
                 employee_id = rows[0].id;
 
@@ -832,7 +837,8 @@ const updateEmployeeManager = () => {
 
                 if (employee_id === manager_id) {
                     console.log("You cannot assign the same person as a manager to themselves.");
-                    askQuestions();
+                    rows = null;
+                    return rows;
                 }
                 else {
 
@@ -844,12 +850,15 @@ const updateEmployeeManager = () => {
                 }
 
             }).then(rows => {
-                
-                if (rows.changedRows === 1) {
+
+                if (rows === null) {
+                    return;
+                }
+                else if (rows.changedRows === 1) {
                     console.log("Manager successfully assigned to employee");
                 }
-                else {
-                    console.log("Failed to assign manager to employee.");
+                else if (rows.changedRows === 0) {
+                    console.log("That manager is already assigned to that employee.");
                 }
 
             }).then(() => {
@@ -860,6 +869,32 @@ const updateEmployeeManager = () => {
         });
 
     });
+
+}
+
+const requireLetters = value => {
+    if (/^[A-Za-z\s']+$/.test(value)) {
+        return true;
+    }
+    
+    return 'Answer must be alphabetical';
+}
+
+const requireNumbers = value => {
+    if (/^\d+$/.test(value)) {
+        return true;
+    }
+    
+    return 'Answer must be a number. Do not include commas.';
+}
+
+const splitName = name => {
+
+    const index = name.indexOf(' ');
+    let first_name = name.substr(0, index);
+    let last_name = name.substr(index + 1);
+
+    return [first_name, last_name];
 
 }
 

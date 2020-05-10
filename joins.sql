@@ -87,8 +87,20 @@ SELECT department.id FROM department WHERE department.name = 'Engineering';
 -- SELECT employee first name and last name from employee table --
 SELECT CONCAT(employee.first_name, ' ', employee.last_name) AS employee_name FROM employee;
 
+-- Set all manager_ids to null when a manager is removed --
+SELECT * FROM employee;
+SELECT * FROM employee WHERE manager_id = 3;
+UPDATE employee SET employee.manager_id = null WHERE employee.manager_id = 3;
+
+
+
 -- Remove Employee from Employee Table --
 DELETE FROM employee WHERE employee.id = ?;
 
 -- Update Employee Role Id by Employee Id --
 UPDATE employee SET employee.role_id = 2 WHERE employee.id = 1;
+
+select * from employee;
+
+-- Update Employee Manager --
+UPDATE employee SET employee.manager_id = null WHERE employee.id = 1;

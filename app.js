@@ -562,8 +562,6 @@ const removeEmployee = () => {
                 employeeList.push(rows[i].employee_name);
             }
 
-            console.log("employee list: ", employeeList);
-
             return employeeList;
 
         }
@@ -599,6 +597,13 @@ const removeEmployee = () => {
                 database.query(viewEmployeeIdByName, [first_name, last_name]).then(rows => {
                     
                     employee_id = rows[0].id;
+
+                    const query = new Queries();
+                    const updateEmployeesUnderRemovedManager = query.updateEmployeesUnderRemovedManager();
+
+                    return database.query(updateEmployeesUnderRemovedManager, employee_id);
+                
+                }).then(rows => {
 
                     const query = new Queries();
                     const removeEmployeeById = query.removeEmployeeById();
@@ -801,13 +806,11 @@ const updateEmployeeManager = () => {
                 manager_id = null;
             }
 
-            //viewEmployeeIdByName
             const query = new Queries();
             const viewEmployeeIdByName = query.viewEmployeeIdByName();
 
             database.query(viewEmployeeIdByName, [first_name, last_name]).then(rows => {
 
-                console.log("employee id: " + rows[0].id);
                 employee_id = rows[0].id;
 
                 if (manager_id !== null) {

@@ -58,7 +58,7 @@ const askQuestions = () => {
                   addEmployee();
                 break;
                 case 'Remove Employee':
-
+                  removeEmployee();
                 break;
                 case 'Update Employee Role':
 
@@ -81,25 +81,33 @@ const viewAllEmployees = () => {
 
         database.query(viewAllEmployees).then(rows => {
 
-            let dataTable = [];
+            if (rows.length > 0) {
+
+                let dataTable = [];
     
-            for (let i = 0; i < rows.length; i++) {
-                const { id, first_name, last_name, title, department, salary, manager } = rows[i];
-                const obj = {};
-                obj["id"] = id;
-                obj["first_name"] = first_name;
-                obj["last_name"] = last_name;
-                obj["title"] = title;
-                obj["department"] = department;
-                obj["salary"] = salary;
-                obj["manager"] = manager;
+                for (let i = 0; i < rows.length; i++) {
+                    const { id, first_name, last_name, title, department, salary, manager } = rows[i];
+                    const obj = {};
+                    obj["id"] = id;
+                    obj["first_name"] = first_name;
+                    obj["last_name"] = last_name;
+                    obj["title"] = title;
+                    obj["department"] = department;
+                    obj["salary"] = salary;
+                    obj["manager"] = manager;
+            
+                    dataTable.push(obj);
+                }
         
-                dataTable.push(obj);
+                const table = cTable.getTable(dataTable);
+                    
+                console.log(table);
+
             }
-    
-            const table = cTable.getTable(dataTable);
-                
-            console.log(table);
+            else {
+                console.log("There are no employees in the database.");
+                askQuestions();
+            } 
     
         }, err => {
             return database.close().then(() => { throw err; })
@@ -120,13 +128,21 @@ const viewAllEmployeesByDept = () => {
 
     database.query(viewAllDepartments).then(rows => {
 
-        for (let i = 0; i < rows.length; i++) {
-            deptList.push(rows[i].department);
+        if (rows.length > 0) {
+
+            for (let i = 0; i < rows.length; i++) {
+                deptList.push(rows[i].department);
+            }
+    
+            deptList.push('Cancel');
+    
+            return deptList;
+
         }
-
-        deptList.push('Cancel');
-
-        return deptList;
+        else {
+            console.log("There are no departments in the database.");
+            askQuestions();
+        }
 
     }).then(deptList => {
         inquirer
@@ -172,6 +188,7 @@ const viewDept = (dept) => {
         obj["manager"] = manager;
   
         dataTable.push(obj);
+        
       }
   
         const table = cTable.getTable(dataTable);
@@ -197,16 +214,21 @@ const viewAllEmployeesByMgr = () => {
   
     database.query(viewAllManagers).then(rows => {
 
-        for (let i = 0; i < rows.length; i++) {
-            managersList.push(rows[i].manager);
+        if (rows.length > 0) {
+            for (let i = 0; i < rows.length; i++) {
+                managersList.push(rows[i].manager);
+            }
+    
+            managersList.push('Cancel');
+    
+            return managersList;
+        }
+        else {
+            console.log('There are no managers in the database.');
+            askQuestions();
         }
 
-        managersList.push('Cancel');
-
-        return managersList;
-
     }).then(managersList => {
-        console.log(`managersList ${managersList}`);
         
          inquirer
               .prompt([
@@ -280,7 +302,7 @@ const addDepartment = () => {
         {
             type: 'input',
             name: 'department',
-            message: 'Enter the name of the department you would like to add.',
+            message: 'Enter the name of the department you would like to add:',
         }
     ])
     .then(answers => {
@@ -294,7 +316,6 @@ const addDepartment = () => {
         database.query(insertOrIgnoreDepartment, department).then(rows => {
 
             if (rows.insertId !== 0) {
-                console.log(rows, " inserted");
                 console.log("New Department added");
             }
             else {
@@ -311,8 +332,6 @@ const addDepartment = () => {
 
 const addRole = () => {
 
-    
-
     const query = new Queries();
     const viewAllDepartments = query.viewAllDepartments();
 
@@ -321,11 +340,19 @@ const addRole = () => {
 
     database.query(viewAllDepartments).then(rows => {
 
-        for (let i = 0; i < rows.length; i++) {
-            deptList.push(rows[i].department);
-        }
+        if (rows.length > 0) {
 
-        return deptList;
+            for (let i = 0; i < rows.length; i++) {
+                deptList.push(rows[i].department);
+            }
+    
+            return deptList;
+
+        }
+        else {
+            console.log('You must first add a department before you can add a role to the database.');
+            askQuestions();
+        }
 
     }).then(deptList => {
 
@@ -375,7 +402,6 @@ const addRole = () => {
             }).then(rows => {
 
                     if (rows.insertId !== 0) {
-                        console.log(rows, " inserted");
                         console.log("New role added.");
                     }
                     else {
@@ -396,37 +422,40 @@ const addRole = () => {
 const addEmployee = () => {
 
     const query = new Queries();
-    const viewAllRolls = query.viewAllRolls();
+    const viewAllRoles = query.viewAllRoles();
 
     let jobTitleList = [];
-    let managersList = [];
-    let managersArray = [];
+    let employeeList = [];
   
-    database.query(viewAllRolls).then(rows => {
+    database.query(viewAllRoles).then(rows => {
 
-        for (let i = 0; i < rows.length; i++) {
-            jobTitleList.push(rows[i].title);
+        if (rows.length > 0) {
+
+            for (let i = 0; i < rows.length; i++) {
+                jobTitleList.push(rows[i].title);
+            }
+    
+            const query = new Queries();
+            const viewAllEmployeeNames = query.viewAllEmployeeNames();
+
+            return database.query(viewAllEmployeeNames);
+
         }
-
-        const query = new Queries();
-        const viewAllManagers = query.viewAllManagers();
-
-        return database.query(viewAllManagers);
+        else {
+            console.log("You must first add a job role to the database before you can add an employee.");
+            askQuestions();
+        }
 
     }).then(rows => {
 
-        managersList.push('None');
+        employeeList.push('None');
 
         for (let i = 0; i < rows.length; i++) {
-            managersList.push(rows[i].manager);
-            managersArray.push(rows[i]);
+            employeeList.push(rows[i].employee_name);
         }
 
-        console.log("managersList: ", managersList);
-        console.log("jobTitleList: ", jobTitleList);
-        console.log("managersArray: ", managersArray);
-
         let role_id;
+        let manager_id;
 
         inquirer
             .prompt([
@@ -450,7 +479,7 @@ const addEmployee = () => {
                     type: 'list',
                     name: 'manager',
                     message: 'Who is this employee\'s manager?',
-                    choices: managersList
+                    choices: employeeList
                 }
             ])
             .then(answers => {
@@ -460,34 +489,39 @@ const addEmployee = () => {
                 first_name = initialCaps(first_name);
                 last_name = initialCaps(last_name);
 
-                console.log(`
-                    ${first_name}, ${last_name}, ${title}, ${manager}
-                `);
-
                 const query = new Queries();
                 const viewRoleIdByName = query.viewRoleIdByName();
             
                 database.query(viewRoleIdByName, title).then(rows => {
 
-                    console.log("role id: " + rows[0].id);
-
                     role_id = rows[0].id;
-
-                    let manager_id;
 
                     if (manager !== 'None') {
 
-                        for (let i = 0; i < managersArray.length; i++) {
-                            if (managersArray[i].manager === manager) {
-                                manager_id = managersArray[i].manager_id;
-                            }
-                        }
+                        const index = manager.indexOf(' ');
+                        const first_name = manager.substr(0, index);
+                        const last_name = manager.substr(index + 1);
+
+                        const query = new Queries();
+                        const viewEmployeeIdByName = query.viewEmployeeIdByName();
+                    
+                        return database.query(viewEmployeeIdByName, [first_name, last_name]);
 
                     }
                     else {
                         manager_id = null;
+                        return manager_id;
                     }
-                    
+
+                }).then(rows => {
+
+                    if (rows !== null) {
+                        manager_id = rows[0].id;
+                    }
+                    else {
+                        manager_id = null;
+                    }
+
                     const query = new Queries();
                     const insertNewEmployee = query.insertNewEmployee();
 
@@ -496,12 +530,94 @@ const addEmployee = () => {
                 }).then(rows => {
                     
                     if (rows.insertId !== 0) {
-                        console.log(rows, " inserted");
                         console.log("New employee added.");
                     }
                     else {
                         console.log("Unable to add new employee.");
                         addRole();
+                    }
+
+                }).then(() => {
+                    askQuestions();
+                });
+
+            });
+
+    });
+
+}
+
+const removeEmployee = () => {
+
+    let employeeList = [];
+
+    const query = new Queries();
+    const viewAllEmployeeNames = query.viewAllEmployeeNames();
+
+    database.query(viewAllEmployeeNames).then(rows => {
+
+        if (rows.length > 0) {
+
+            employeeList.push('Cancel');
+
+            for (let i = 0; i < rows.length; i++) {
+                employeeList.push(rows[i].employee_name);
+            }
+
+            console.log("employee list: ", employeeList);
+
+            return employeeList;
+
+        }
+        else {
+            console.log("There are no employees in the database.");
+            askQuestions();
+        }
+
+    }).then(employeeList => {
+
+        inquirer
+            .prompt([
+                {
+                    type: 'list',
+                    name: 'employee',
+                    message: 'Select the employee you want to remove from the database.',
+                    choices: employeeList
+                }
+            ])
+            .then(answer => {
+
+                const employee = answer.employee;
+
+                if (employee === 'Cancel') {
+                    endExecution();
+                }
+
+                const index = employee.indexOf(' ');
+                const first_name = employee.substr(0, index);
+                const last_name = employee.substr(index + 1);
+
+                const query = new Queries();
+                const viewEmployeeIdByName = query.viewEmployeeIdByName();
+
+                let employee_id;
+
+                database.query(viewEmployeeIdByName, [first_name, last_name]).then(rows => {
+                    
+                    employee_id = rows[0].id;
+
+                    const query = new Queries();
+                    const removeEmployeeById = query.removeEmployeeById();
+
+                    return database.query(removeEmployeeById, employee_id);
+
+                }).then(rows => {
+
+                    if (rows.affectedRows === 1) {
+                        console.log("Employee was removed from the database.");
+                    }
+                    else {
+                        console.log("Failed to remove employee from the database.");
                     }
 
                 }).then(() => {

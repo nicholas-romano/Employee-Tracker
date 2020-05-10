@@ -56,20 +56,39 @@ SELECT role.id FROM role WHERE role.title = 'Lawyer';
 -- View department id by name --
 SELECT department.id FROM department WHERE department.name = 'IT';
 
-SELECT * FROM employee;
-SELECT * FROM department;
-SELECT * FROM role;
+-- View employee id by name --
+SELECT employee.id FROM employee WHERE employee.first_name = 'Mike' AND employee.last_name = 'Chan';
 
+-- Select Role Id By Role Name --
+SELECT role.id FROM role WHERE role.title = 'Software Engineer';
+
+-- Delete Record from Table --
 delete from department where department.id = 5;
-delete from role where role.id = 8;
+delete from role where role.id = 9;
+delete from employee where employee.id = 9;
 
-ALTER TABLE department AUTO_INCREMENT = 5;
-ALTER TABLE role AUTO_INCREMENT = 8;
-
+-- SELECT Department Id By Department Name --
 SELECT department.id FROM department WHERE department.name = 'Engineering';
 
+-- Resetting Auto Increment --
 ALTER TABLE department AUTO_INCREMENT = 5;
 ALTER TABLE role AUTO_INCREMENT = 8;
+ALTER TABLE employee AUTO_INCREMENT = 9;
+
+-- Resetting employee id --
+UPDATE employee SET employee.id = 8 WHERE employee.id = 9;
 
 -- Display all role titles -- 
 SELECT title from role;
+
+-- Select Department Id By Department Name --
+SELECT department.id FROM department WHERE department.name = 'Engineering';
+
+-- SELECT employee first name and last name from employee table --
+SELECT CONCAT(employee.first_name, ' ', employee.last_name) AS employee_name FROM employee;
+
+-- Remove Employee from Employee Table --
+DELETE FROM employee WHERE employee.id = ?;
+
+-- Update Employee Role Id by Employee Id --
+UPDATE employee SET employee.role_id = 2 WHERE employee.id = 1;

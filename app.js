@@ -61,7 +61,7 @@ const askQuestions = () => {
                   removeEmployee();
                 break;
                 case 'Update Employee Role':
-
+                  updateEmployeeRole();
                 break;
                 case 'Update Employee Manager':
 
@@ -624,6 +624,123 @@ const removeEmployee = () => {
                     askQuestions();
                 });
 
+            });
+
+    });
+
+}
+
+const updateEmployeeRole = () => {
+
+    let employeeList = [];
+    let jobTitleList = [];
+    let employee_id;
+    let role_id;
+
+    const query = new Queries();
+    const viewAllEmployeeNames = query.viewAllEmployeeNames();
+
+    database.query(viewAllEmployeeNames).then(rows => {
+
+        if (rows.length > 0) {
+
+            employeeList.push('Cancel');
+
+            for (let i = 0; i < rows.length; i++) {
+                employeeList.push(rows[i].employee_name);
+            }
+
+            return employeeList;
+
+        }
+        else {
+            console.log("There are no employees in the database.");
+            askQuestions();
+        }
+
+    }).then(employeeList => {
+
+        inquirer
+            .prompt([
+                {
+                    type: 'list',
+                    name: 'employee',
+                    message: 'Select an employee to update their role:',
+                    choices: employeeList
+                }
+            ])
+            .then(answer => {
+                const { employee } = answer;
+
+                const index = employee.indexOf(' ');
+                const first_name = employee.substr(0, index);
+                const last_name = employee.substr(index + 1);
+                
+                const query = new Queries();
+                const viewEmployeeIdByName = query.viewEmployeeIdByName();
+
+                database.query(viewEmployeeIdByName, [first_name, last_name]).then(rows => {
+
+                    employee_id = rows[0].id;
+
+                    const query = new Queries();
+                    const viewAllRoles = query.viewAllRoles();
+                
+                    return database.query(viewAllRoles);
+                    
+                }).then(rows => {
+
+                    jobTitleList.push('Cancel');
+
+                    for (let i = 0; i < rows.length; i++) {
+                        jobTitleList.push(rows[i].title);
+                    }
+
+                    inquirer
+                        .prompt([
+                            {
+                                type: 'list',
+                                name: 'title',
+                                message: 'Select a job role to assign to this employee:',
+                                choices: jobTitleList
+                            }
+                        ])
+                        .then(answer => {
+
+                            let { title } = answer;
+
+                            if (title === 'Cancel') {
+                                endExecution();
+                            }
+                            
+                            const query = new Queries();
+                            const viewRoleIdByName = query.viewRoleIdByName();
+
+                            return database.query(viewRoleIdByName, title);
+
+                        }).then(rows => {
+
+                            role_id = rows[0].id;
+
+                            const query = new Queries();
+                            const updateEmployeeRoleId = query.updateEmployeeRoleId();
+                            
+                            return database.query(updateEmployeeRoleId, [role_id, employee_id]);
+                                
+                        }).then(rows => {
+
+                            if (rows.changedRows === 1) {
+                                console.log("Updated employee role");
+                            }
+                            else {
+                                console.log("This employee has already been assigned this role.");
+                            }
+
+                        }).then(() => {
+                            askQuestions();
+                        });
+
+                });
             });
 
     });

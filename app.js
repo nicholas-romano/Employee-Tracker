@@ -64,7 +64,7 @@ const askQuestions = () => {
                   updateEmployeeRole();
                 break;
                 case 'Update Employee Manager':
-
+                  updateEmployeeManager();
                 break;
                 case 'Exit':
                   endExecution();
@@ -558,8 +558,6 @@ const removeEmployee = () => {
 
         if (rows.length > 0) {
 
-            employeeList.push('Cancel');
-
             for (let i = 0; i < rows.length; i++) {
                 employeeList.push(rows[i].employee_name);
             }
@@ -588,10 +586,6 @@ const removeEmployee = () => {
             .then(answer => {
 
                 const employee = answer.employee;
-
-                if (employee === 'Cancel') {
-                    endExecution();
-                }
 
                 const index = employee.indexOf(' ');
                 const first_name = employee.substr(0, index);
@@ -644,8 +638,6 @@ const updateEmployeeRole = () => {
 
         if (rows.length > 0) {
 
-            employeeList.push('Cancel');
-
             for (let i = 0; i < rows.length; i++) {
                 employeeList.push(rows[i].employee_name);
             }
@@ -690,8 +682,6 @@ const updateEmployeeRole = () => {
                     
                 }).then(rows => {
 
-                    jobTitleList.push('Cancel');
-
                     for (let i = 0; i < rows.length; i++) {
                         jobTitleList.push(rows[i].title);
                     }
@@ -708,10 +698,6 @@ const updateEmployeeRole = () => {
                         .then(answer => {
 
                             let { title } = answer;
-
-                            if (title === 'Cancel') {
-                                endExecution();
-                            }
                             
                             const query = new Queries();
                             const viewRoleIdByName = query.viewRoleIdByName();
@@ -742,6 +728,133 @@ const updateEmployeeRole = () => {
 
                 });
             });
+
+    });
+
+}
+
+const updateEmployeeManager = () => {
+
+    let employeeList = [];
+    let managersList = [];
+    let employee_id;
+    let manager_id;
+    let m_first_name;
+    let m_last_name;
+
+    const query = new Queries();
+    const viewAllEmployeeNames = query.viewAllEmployeeNames();
+
+    database.query(viewAllEmployeeNames).then(rows => {
+
+        if (rows.length > 0) {
+
+            for (let i = 0; i < rows.length; i++) {
+                employeeList.push(rows[i].employee_name);
+            }
+
+            managersList.push('None');
+
+            for (let i = 0; i < rows.length; i++) {
+                managersList.push(rows[i].employee_name);
+            }
+
+            return;
+
+        }
+        else {
+            console.log("There are no employees in the database.");
+            askQuestions();
+        }
+
+    }).then(() => {
+
+        inquirer
+        .prompt([
+            {
+                type: 'list',
+                name: 'employee',
+                message: 'Select the employee whose manager you want to update:',
+                choices: employeeList
+            },
+            {
+                type: 'list',
+                name: 'manager',
+                message: 'Select the manager you want to assign this employee to:',
+                choices: managersList
+            }
+        ])
+        .then(answers => {
+
+            const { employee, manager } = answers;
+
+            const index = employee.indexOf(' ');
+            const first_name = employee.substr(0, index);
+            const last_name = employee.substr(index + 1);
+
+            if (manager !== 'None') {
+                const index2 = manager.indexOf(' ');
+                m_first_name = manager.substr(0, index2);
+                m_last_name = manager.substr(index2 + 1);
+            }
+            else {
+                manager_id = null;
+            }
+
+            //viewEmployeeIdByName
+            const query = new Queries();
+            const viewEmployeeIdByName = query.viewEmployeeIdByName();
+
+            database.query(viewEmployeeIdByName, [first_name, last_name]).then(rows => {
+
+                console.log("employee id: " + rows[0].id);
+                employee_id = rows[0].id;
+
+                if (manager_id !== null) {
+                    const query = new Queries();
+                    const viewEmployeeIdByName = query.viewEmployeeIdByName();
+
+                    return database.query(viewEmployeeIdByName, [m_first_name, m_last_name]);
+
+                }
+                else {
+                    return manager_id;
+                }
+                
+            }).then(rows => {
+
+                if (rows !== null) {
+                    manager_id = rows[0].id;
+                }
+
+                if (employee_id === manager_id) {
+                    console.log("You cannot assign the same person as a manager to themselves.");
+                    askQuestions();
+                }
+                else {
+
+                    const query = new Queries();
+                    const updateEmployeeManagerById = query.updateEmployeeManagerById();
+
+                    return database.query(updateEmployeeManagerById, [manager_id, employee_id]);
+
+                }
+
+            }).then(rows => {
+                
+                if (rows.changedRows === 1) {
+                    console.log("Manager successfully assigned to employee");
+                }
+                else {
+                    console.log("Failed to assign manager to employee.");
+                }
+
+            }).then(() => {
+                askQuestions();
+            });
+
+
+        });
 
     });
 

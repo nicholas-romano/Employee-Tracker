@@ -87,25 +87,8 @@ const viewAllEmployees = () => {
 
             if (rows.length > 0) {
 
-                let dataTable = [];
-    
-                for (let i = 0; i < rows.length; i++) {
-                    const { id, first_name, last_name, title, department, salary, manager } = rows[i];
-                    const obj = {};
-                    obj["id"] = id;
-                    obj["first_name"] = first_name;
-                    obj["last_name"] = last_name;
-                    obj["title"] = title;
-                    obj["department"] = department;
-                    obj["salary"] = salary;
-                    obj["manager"] = manager;
-            
-                    dataTable.push(obj);
-                }
-        
-                const table = cTable.getTable(dataTable);
-                    
-                console.log(table);
+                const dataTable = createTable(rows);
+                console.log(dataTable);
 
             }
             else {
@@ -176,26 +159,8 @@ const viewDept = (dept) => {
 
     database.query(viewAllEmployeesByDept, dept).then(rows => {
   
-      let dataTable = [];
-  
-      for (let i = 0; i < rows.length; i++) {
-        const { id, first_name, last_name, title, department, salary, manager } = rows[i];
-        const obj = {};
-        obj["id"] = id;
-        obj["first_name"] = first_name;
-        obj["last_name"] = last_name;
-        obj["title"] = title;
-        obj["department"] = department;
-        obj["salary"] = salary;
-        obj["manager"] = manager;
-  
-        dataTable.push(obj);
-        
-      }
-  
-        const table = cTable.getTable(dataTable);
-        
-        console.log(table);
+        const dataTable = createTable(rows);
+        console.log(dataTable);
 
     }, err => {
         return database.close().then(() => { throw err; })
@@ -260,25 +225,8 @@ const viewRole = title => {
   
     database.query(viewAllEmployeesByRole, title).then(rows => {
         
-        let dataTable = [];
-    
-        for (let i = 0; i < rows.length; i++) {
-            const { id, first_name, last_name, title, department, salary, manager } = rows[i];
-            const obj = {};
-            obj["id"] = id;
-            obj["first_name"] = first_name;
-            obj["last_name"] = last_name;
-            obj["title"] = title;
-            obj["department"] = department;
-            obj["salary"] = salary;
-            obj["manager"] = manager;
-    
-            dataTable.push(obj);
-        }
-
-        const table = cTable.getTable(dataTable);
-            
-        console.log(table);
+        const dataTable = createTable(rows);
+        console.log(dataTable);
 
     }, err => {
         return database.close().then(() => { throw err; })
@@ -348,25 +296,8 @@ const viewMgr = mgr => {
   
     database.query(viewAllEmployeesByManager, [first_name, last_name]).then(rows => {
         
-        let dataTable = [];
-    
-        for (let i = 0; i < rows.length; i++) {
-            const { id, first_name, last_name, title, department, salary, manager } = rows[i];
-            const obj = {};
-            obj["id"] = id;
-            obj["first_name"] = first_name;
-            obj["last_name"] = last_name;
-            obj["title"] = title;
-            obj["department"] = department;
-            obj["salary"] = salary;
-            obj["manager"] = manager;
-    
-            dataTable.push(obj);
-        }
-
-        const table = cTable.getTable(dataTable);
-            
-        console.log(table);
+        const dataTable = createTable(rows);
+        console.log(dataTable);
 
     }, err => {
         return database.close().then(() => { throw err; })
@@ -517,11 +448,11 @@ const addRole = () => {
 
 const addEmployee = () => {
 
+    let jobTitleList = [];
+    let managersList = [];
+
     const query = new Queries();
     const viewAllRoles = query.viewAllRoles();
-
-    let jobTitleList = [];
-    let employeeList = [];
   
     database.query(viewAllRoles).then(rows => {
 
@@ -546,9 +477,9 @@ const addEmployee = () => {
             askQuestions();
         }
 
-        employeeList.push('None');
+        managersList = createList(rows, 'employee_name');
 
-        employeeList = createList(rows, 'employee_name');
+        managersList.unshift('None');
 
         let role_id;
         let manager_id;
@@ -577,7 +508,7 @@ const addEmployee = () => {
                     type: 'list',
                     name: 'manager',
                     message: 'Who is this employee\'s manager?',
-                    choices: employeeList
+                    choices: managersList
                 }
             ])
             .then(answers => {
@@ -850,9 +781,9 @@ const updateEmployeeManager = () => {
 
             employeeList = createList(rows, 'employee_name');
 
-            managersList.push('None');
-
             managersList = createList(rows, 'employee_name');
+
+            managersList.unshift('None');
 
             return;
 
@@ -954,6 +885,30 @@ const updateEmployeeManager = () => {
         });
 
     });
+
+}
+
+const createTable = rows => {
+
+    let dataTable = [];
+    
+    for (let i = 0; i < rows.length; i++) {
+        const { id, first_name, last_name, title, department, salary, manager } = rows[i];
+        const obj = {};
+        obj["id"] = id;
+        obj["first_name"] = first_name;
+        obj["last_name"] = last_name;
+        obj["title"] = title;
+        obj["department"] = department;
+        obj["salary"] = salary;
+        obj["manager"] = manager;
+
+        dataTable.push(obj);
+    }
+
+    const table = cTable.getTable(dataTable);
+        
+    return table;            
 
 }
 

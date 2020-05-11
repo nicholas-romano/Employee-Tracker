@@ -25,6 +25,7 @@ const askQuestions = () => {
                 choices: [
                   'View All Employees',
                   'View All Employees By Department',
+                  'View All Employees By Role',
                   'View All Employees By Manager',
                   'Add Department',
                   'Add Role',
@@ -44,6 +45,9 @@ const askQuestions = () => {
                 break;
                 case 'View All Employees By Department':
                   viewAllEmployeesByDept();
+                break;
+                case 'View All Employees By Role':
+                  viewAllEmployeesByRole();
                 break;
                 case 'View All Employees By Manager':
                   viewAllEmployeesByMgr();
@@ -130,9 +134,7 @@ const viewAllEmployeesByDept = () => {
 
         if (rows.length > 0) {
 
-            for (let i = 0; i < rows.length; i++) {
-                deptList.push(rows[i].department);
-            }
+            deptList = createList(rows, 'department');
     
             deptList.push('Cancel');
     
@@ -205,6 +207,89 @@ const viewDept = (dept) => {
 
 }
 
+const viewAllEmployeesByRole = () => {
+
+    let roleList = [];
+
+    const query = new Queries();
+    const viewAllRoles = query.viewAllRoles();
+
+    database.query(viewAllRoles).then(rows => {
+
+        if (rows.length > 0) {
+
+            roleList = createList(rows, 'title');
+    
+            roleList.push('Cancel');
+    
+            return roleList;
+
+        }
+        else {
+            console.log("There are no roles in the database.");
+            askQuestions();
+        }
+
+    }).then(roleList => {
+        inquirer
+            .prompt([
+                {
+                    type: 'list',
+                    name: 'title',
+                    message: 'Select the job title of the employees you would like to view:',
+                    choices: roleList
+                }
+            ])
+            .then(answer => {
+                const { title } = answer;
+                if (title !== 'Cancel') {
+                    viewRole(title);
+                }
+                else {
+                    endExecution();
+                }
+            });
+    });
+
+}
+
+const viewRole = title => {
+
+    const query = new Queries();
+    const viewAllEmployeesByRole = query.viewAllEmployeesByRole();
+  
+    database.query(viewAllEmployeesByRole, title).then(rows => {
+        
+        let dataTable = [];
+    
+        for (let i = 0; i < rows.length; i++) {
+            const { id, first_name, last_name, title, department, salary, manager } = rows[i];
+            const obj = {};
+            obj["id"] = id;
+            obj["first_name"] = first_name;
+            obj["last_name"] = last_name;
+            obj["title"] = title;
+            obj["department"] = department;
+            obj["salary"] = salary;
+            obj["manager"] = manager;
+    
+            dataTable.push(obj);
+        }
+
+        const table = cTable.getTable(dataTable);
+            
+        console.log(table);
+
+    }, err => {
+        return database.close().then(() => { throw err; })
+    }).then(() => {
+        askQuestions();
+    }).catch(err => {
+        console.log(err);
+    });
+
+}
+
 const viewAllEmployeesByMgr = () => {
 
     const query = new Queries();
@@ -215,9 +300,8 @@ const viewAllEmployeesByMgr = () => {
     database.query(viewAllManagers).then(rows => {
 
         if (rows.length > 0) {
-            for (let i = 0; i < rows.length; i++) {
-                managersList.push(rows[i].manager);
-            }
+
+            managersList = createList(rows, 'manager');
     
             managersList.push('Cancel');
     
@@ -255,7 +339,7 @@ const viewAllEmployeesByMgr = () => {
 
 const viewMgr = mgr => {
 
-    let e_full_name = splitName(employee);
+    let e_full_name = splitName(mgr);
     let first_name = e_full_name[0];
     let last_name = e_full_name[1];
 
@@ -296,123 +380,134 @@ const viewMgr = mgr => {
 
 const addDepartment = () => {
     inquirer
-    .prompt([
-        {
-            type: 'input',
-            name: 'department',
-            message: 'Enter the name of the department you would like to add:',
-            validate: requireLetters
-        }
-    ])
-    .then(answers => {
-        let department = answers.department;
-
-        department = initialCaps(department);
-
-        const query = new Queries();
-        const insertOrIgnoreDepartment = query.insertOrIgnoreDepartment();
-
-        database.query(insertOrIgnoreDepartment, department).then(rows => {
-
-            if (rows.insertId !== 0) {
-                console.log("New Department added");
+        .prompt([
+            {
+                type: 'input',
+                name: 'department',
+                message: 'Enter the name of the department you would like to add:',
+                validate: requireLetters
             }
-            else {
-                console.log("this department already exists. Please enter a different name.");
-                addDepartment();
-            }
+        ])
+        .then(answers => {
 
-        }).then(() => {
-            askQuestions();
+            let department = answers.department;
+
+            department = initialCaps(department).trim();
+
+            const query = new Queries();
+            const insertOrIgnoreDepartment = query.insertOrIgnoreDepartment();
+
+            database.query(insertOrIgnoreDepartment, department).then(rows => {
+
+                if (rows.insertId !== 0) {
+                    return rows;
+                }
+                else {
+                    return null;
+                }
+
+            }).then(rows => {
+
+                if (rows !== null) {
+                    console.log("New Department added");   
+                    askQuestions();                 
+                }
+                else {
+                    console.log("This department already exists. Please enter a different name.");
+                    addDepartment();
+                }
+                
+            });
+
         });
-
-    });
 }
 
 const addRole = () => {
 
-    const query = new Queries();
-    const viewAllDepartments = query.viewAllDepartments();
-
     let deptList = [];
     let dept_id;
+
+    const query = new Queries();
+    const viewAllDepartments = query.viewAllDepartments();
 
     database.query(viewAllDepartments).then(rows => {
 
         if (rows.length > 0) {
 
-            for (let i = 0; i < rows.length; i++) {
-                deptList.push(rows[i].department);
-            }
-    
+            deptList = createList(rows, 'department'); 
             return deptList;
 
         }
         else {
-            console.log('You must first add a department before you can add a role to the database.');
-            askQuestions();
+            deptList = null;
+            return deptList;
         }
 
     }).then(deptList => {
 
+        if (deptList === null) {
+            console.log('You must first add a department before you can add a job title to the database.');
+            askQuestions();
+        }
+
         inquirer
-        .prompt([
-            {
-                type: 'input',
-                name: 'title',
-                message: 'Enter the name of the role you would like to add:',
-                validate: requireLetters
-            },
-            {
-                type: 'input',
-                name: 'salary',
-                message: 'What is this salary for this role?',
-                validate: requireNumbers
-            },
-            {
-                type: 'list',
-                name: 'dept',
-                message: 'Select a department where this role belongs to:',
-                choices: deptList
-            }
-        ])
-        .then(answers => {
-
-                let { title, salary, dept } = answers;
-
-                title = initialCaps(title);
-                dept = initialCaps(dept);
-
-                const query = new Queries();
-                const viewDepartmentIdByName = query.viewDepartmentIdByName();
-
-            database.query(viewDepartmentIdByName, dept).then(rows => {
-
-                dept_id = rows[0].id;
-
-                if (dept_id === undefined) {
-                    console.log("The department you entered was not found.")
-                    addRole();
+            .prompt([
+                {
+                    type: 'input',
+                    name: 'title',
+                    message: 'Enter the name of the job title you would like to add:',
+                    validate: requireLetters
+                },
+                {
+                    type: 'input',
+                    name: 'salary',
+                    message: 'What is this salary for this job?',
+                    validate: requireNumbers
+                },
+                {
+                    type: 'list',
+                    name: 'dept',
+                    message: 'Select a department where this job belongs to:',
+                    choices: deptList
                 }
+            ])
+            .then(answers => {
 
-                const query = new Queries();
-                const insertOrIgnoreRole = query.insertOrIgnoreRole();
+                    let { title, salary, dept } = answers;
 
-                return database.query(insertOrIgnoreRole, [title, salary, dept_id]);
+                    title = initialCaps(title).trim();
+                    dept = initialCaps(dept).trim();
 
-            }).then(rows => {
+                    const query = new Queries();
+                    const viewDepartmentIdByName = query.viewDepartmentIdByName();
 
-                    if (rows.insertId !== 0) {
-                        console.log("New role added.");
-                    }
-                    else {
-                        console.log("This role already exists. Please enter a different name.");
+                database.query(viewDepartmentIdByName, dept).then(rows => {
+
+                    dept_id = rows[0].id;
+
+                    if (dept_id === undefined) {
+                        console.log("The department you entered was not found.")
                         addRole();
                     }
 
-            }).then(() => {
-                    askQuestions();
-            });
+                    const query = new Queries();
+                    const insertOrIgnoreRole = query.insertOrIgnoreRole();
+
+                    return database.query(insertOrIgnoreRole, [title, salary, dept_id]);
+
+                }).then(rows => {
+
+                        if (rows.insertId !== 0) {
+                            console.log("New job title added.");
+                        }
+                        else {
+                            console.log("This job title already exists. Please enter a different name.");
+                            addRole();
+                        }
+
+                }).then(() => {
+                        askQuestions();
+                });
 
         });
 
@@ -432,9 +527,7 @@ const addEmployee = () => {
 
         if (rows.length > 0) {
 
-            for (let i = 0; i < rows.length; i++) {
-                jobTitleList.push(rows[i].title);
-            }
+            jobTitleList = createList(rows, 'title');
     
             const query = new Queries();
             const viewAllEmployeeNames = query.viewAllEmployeeNames();
@@ -443,17 +536,19 @@ const addEmployee = () => {
 
         }
         else {
-            console.log("You must first add a job role to the database before you can add an employee.");
-            askQuestions();
+            return null;
         }
 
     }).then(rows => {
 
+        if (rows === null) {
+            console.log("You must first add a job title to the database before you can add an employee.");
+            askQuestions();
+        }
+
         employeeList.push('None');
 
-        for (let i = 0; i < rows.length; i++) {
-            employeeList.push(rows[i].employee_name);
-        }
+        employeeList = createList(rows, 'employee_name');
 
         let role_id;
         let manager_id;
@@ -489,8 +584,8 @@ const addEmployee = () => {
 
                 let { first_name, last_name, title, manager } = answers;
 
-                first_name = initialCaps(first_name);
-                last_name = initialCaps(last_name);
+                first_name = initialCaps(first_name).trim();
+                last_name = initialCaps(last_name).trim();
 
                 const query = new Queries();
                 const viewRoleIdByName = query.viewRoleIdByName();
@@ -501,9 +596,9 @@ const addEmployee = () => {
 
                     if (manager !== 'None') {
 
-                        let e_full_name = splitName(employee);
-                        let first_name = e_full_name[0];
-                        let last_name = e_full_name[1];
+                        let m_full_name = splitName(manager);
+                        let first_name = m_full_name[0];
+                        let last_name = m_full_name[1];
 
                         const query = new Queries();
                         const viewEmployeeIdByName = query.viewEmployeeIdByName();
@@ -561,9 +656,7 @@ const removeEmployee = () => {
 
         if (rows.length > 0) {
 
-            for (let i = 0; i < rows.length; i++) {
-                employeeList.push(rows[i].employee_name);
-            }
+            employeeList = createList(rows, 'employee_name');
 
             return employeeList;
 
@@ -646,9 +739,7 @@ const updateEmployeeRole = () => {
 
         if (rows.length > 0) {
 
-            for (let i = 0; i < rows.length; i++) {
-                employeeList.push(rows[i].employee_name);
-            }
+            employeeList = createList(rows, 'employee_name');
 
             return employeeList;
 
@@ -665,7 +756,7 @@ const updateEmployeeRole = () => {
                 {
                     type: 'list',
                     name: 'employee',
-                    message: 'Select an employee to update their role:',
+                    message: 'Select an employee to update their job title:',
                     choices: employeeList
                 }
             ])
@@ -690,9 +781,7 @@ const updateEmployeeRole = () => {
                     
                 }).then(rows => {
 
-                    for (let i = 0; i < rows.length; i++) {
-                        jobTitleList.push(rows[i].title);
-                    }
+                    jobTitleList = createList(rows, 'title');
 
                     inquirer
                         .prompt([
@@ -724,10 +813,10 @@ const updateEmployeeRole = () => {
                         }).then(rows => {
 
                             if (rows.changedRows === 1) {
-                                console.log("Updated employee role");
+                                console.log("Updated employee job title");
                             }
                             else {
-                                console.log("This employee has already been assigned this role.");
+                                console.log("This employee has already been assigned this job title.");
                             }
 
                         }).then(() => {
@@ -759,15 +848,11 @@ const updateEmployeeManager = () => {
 
         if (rows.length > 0) {
 
-            for (let i = 0; i < rows.length; i++) {
-                employeeList.push(rows[i].employee_name);
-            }
+            employeeList = createList(rows, 'employee_name');
 
             managersList.push('None');
 
-            for (let i = 0; i < rows.length; i++) {
-                managersList.push(rows[i].employee_name);
-            }
+            managersList = createList(rows, 'employee_name');
 
             return;
 
@@ -780,95 +865,107 @@ const updateEmployeeManager = () => {
     }).then(() => {
 
         inquirer
-        .prompt([
-            {
-                type: 'list',
-                name: 'employee',
-                message: 'Select the employee whose manager you want to update:',
-                choices: employeeList
-            },
-            {
-                type: 'list',
-                name: 'manager',
-                message: 'Select the manager you want to assign this employee to:',
-                choices: managersList
-            }
-        ])
-        .then(answers => {
+            .prompt([
+                {
+                    type: 'list',
+                    name: 'employee',
+                    message: 'Select the employee whose manager you want to update:',
+                    choices: employeeList
+                },
+                {
+                    type: 'list',
+                    name: 'manager',
+                    message: 'Select the manager you want to assign this employee to:',
+                    choices: managersList
+                }
+            ])
+            .then(answers => {
 
-            const { employee, manager } = answers;
+                const { employee, manager } = answers;
 
-            let e_full_name = splitName(employee);
-            e_first_name = e_full_name[0];
-            e_last_name = e_full_name[1];
+                const e_full_name = splitName(employee);
+                e_first_name = e_full_name[0];
+                e_last_name = e_full_name[1];
 
-            if (manager !== 'None') {
-                const m_full_name = splitName(manager);
-                m_first_name = m_full_name[0];
-                m_last_name = m_full_name[1];
-            }
-            else {
-                manager_id = null;
-            }
-
-            const query = new Queries();
-            const viewEmployeeIdByName = query.viewEmployeeIdByName();
-
-            database.query(viewEmployeeIdByName, [e_first_name, e_last_name]).then(rows => {
-
-                employee_id = rows[0].id;
-
-                if (manager_id !== null) {
-                    const query = new Queries();
-                    const viewEmployeeIdByName = query.viewEmployeeIdByName();
-
-                    return database.query(viewEmployeeIdByName, [m_first_name, m_last_name]);
-
+                if (manager !== 'None') {
+                    const m_full_name = splitName(manager);
+                    m_first_name = m_full_name[0];
+                    m_last_name = m_full_name[1];
                 }
                 else {
-                    return manager_id;
-                }
-                
-            }).then(rows => {
-
-                if (rows !== null) {
-                    manager_id = rows[0].id;
+                    manager_id = null;
                 }
 
-                if (employee_id === manager_id) {
-                    console.log("You cannot assign the same person as a manager to themselves.");
-                    rows = null;
-                    return rows;
-                }
-                else {
+                const query = new Queries();
+                const viewEmployeeIdByName = query.viewEmployeeIdByName();
 
-                    const query = new Queries();
-                    const updateEmployeeManagerById = query.updateEmployeeManagerById();
+                database.query(viewEmployeeIdByName, [e_first_name, e_last_name]).then(rows => {
 
-                    return database.query(updateEmployeeManagerById, [manager_id, employee_id]);
+                    employee_id = rows[0].id;
 
-                }
+                    if (manager_id !== null) {
+                        const query = new Queries();
+                        const viewEmployeeIdByName = query.viewEmployeeIdByName();
 
-            }).then(rows => {
+                        return database.query(viewEmployeeIdByName, [m_first_name, m_last_name]);
 
-                if (rows === null) {
-                    return;
-                }
-                else if (rows.changedRows === 1) {
-                    console.log("Manager successfully assigned to employee");
-                }
-                else if (rows.changedRows === 0) {
-                    console.log("That manager is already assigned to that employee.");
-                }
+                    }
+                    else {
+                        return manager_id;
+                    }
+                    
+                }).then(rows => {
 
-            }).then(() => {
-                askQuestions();
-            });
+                    if (rows !== null) {
+                        manager_id = rows[0].id;
+                    }
+
+                    if (employee_id === manager_id) {
+                        console.log("You cannot assign the same person as a manager to themselves.");
+                        rows = null;
+                        return rows;
+                    }
+                    else {
+
+                        const query = new Queries();
+                        const updateEmployeeManagerById = query.updateEmployeeManagerById();
+
+                        return database.query(updateEmployeeManagerById, [manager_id, employee_id]);
+
+                    }
+
+                }).then(rows => {
+
+                    if (rows === null) {
+                        return;
+                    }
+                    else if (rows.changedRows === 1) {
+                        console.log("Manager successfully assigned to employee");
+                    }
+                    else if (rows.changedRows === 0) {
+                        console.log("That manager is already assigned to that employee.");
+                    }
+
+                }).then(() => {
+                    askQuestions();
+                });
 
 
         });
 
     });
+
+}
+
+const createList = (rows, item) => {
+
+    let list = [];
+
+    for (let i = 0; i < rows.length; i++) {
+        list.push(rows[i][item]);
+    }
+
+    return list;
 
 }
 

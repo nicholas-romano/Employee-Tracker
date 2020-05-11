@@ -4,6 +4,8 @@ SELECT * FROM employee;
 SELECT * FROM department;
 SELECT * FROM role;
 
+SELECT title from role;
+
 -- View All Employees --
 SELECT employee.id, employee.first_name, employee.last_name, role.title, dept.name AS department, 
 role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee 
@@ -13,6 +15,14 @@ LEFT JOIN employee manager on manager.id = employee.manager_id;
 
 -- View All Departments --
 SELECT department.name AS department FROM department;
+
+-- View All Employees By Role --
+SELECT employee.id, employee.first_name, employee.last_name, role.title, dept.name AS department, 
+role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee 
+LEFT JOIN role on employee.role_id = role.id 
+LEFT JOIN department dept on role.department_id = dept.id 
+LEFT JOIN employee manager on manager.id = employee.manager_id
+WHERE role.title = 'Web Developer II';
  
 -- View All Employees by Department --
 SELECT employee.id, employee.first_name, employee.last_name, role.title, dept.name AS department, 
@@ -92,8 +102,6 @@ SELECT * FROM employee;
 SELECT * FROM employee WHERE manager_id = 3;
 UPDATE employee SET employee.manager_id = null WHERE employee.manager_id = 3;
 
-
-
 -- Remove Employee from Employee Table --
 DELETE FROM employee WHERE employee.id = ?;
 
@@ -101,6 +109,10 @@ DELETE FROM employee WHERE employee.id = ?;
 UPDATE employee SET employee.role_id = 2 WHERE employee.id = 1;
 
 select * from employee;
+select * from role;
 
 -- Update Employee Manager --
 UPDATE employee SET employee.manager_id = null WHERE employee.id = 1;
+
+INSERT INTO employee (id, first_name, last_name, role_id, manager_id) 
+VALUES (3, "Ashley", "Rodriguez", 3, null); 

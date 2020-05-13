@@ -30,7 +30,10 @@ const askQuestions = () => {
                   'Add Department',
                   'Add Role',
                   'Add Employee',
+                  'Assign Role to Department',
                   'Remove Employee',
+                  'Remove Department',
+                  'Remove Role',
                   'Update Employee Role',
                   'Update Employee Manager',
                   'Exit'
@@ -61,8 +64,17 @@ const askQuestions = () => {
                 case 'Add Employee':
                   addEmployee();
                 break;
+                case 'Assign Role to Department':
+                    assignRoleToDept();
+                break;
                 case 'Remove Employee':
                   removeEmployee();
+                break;
+                case 'Remove Department':
+                  removeDepartment();
+                break;
+                case 'Remove Role':
+                  removeRole();
                 break;
                 case 'Update Employee Role':
                   updateEmployeeRole();
@@ -129,6 +141,8 @@ const viewAllEmployeesByDept = () => {
             askQuestions();
         }
 
+    }, err => {
+        return database.close().then(() => { throw err; })
     }).then(deptList => {
         inquirer
             .prompt([
@@ -148,6 +162,8 @@ const viewAllEmployeesByDept = () => {
                     endExecution();
                 }
             });
+    }).catch(err => {
+        console.log(err);
     });
         
 }
@@ -195,6 +211,8 @@ const viewAllEmployeesByRole = () => {
             askQuestions();
         }
 
+    }, err => {
+        return database.close().then(() => { throw err; })
     }).then(roleList => {
         inquirer
             .prompt([
@@ -214,6 +232,8 @@ const viewAllEmployeesByRole = () => {
                     endExecution();
                 }
             });
+    }).catch(err => {
+        console.log(err);
     });
 
 }
@@ -260,9 +280,11 @@ const viewAllEmployeesByMgr = () => {
             askQuestions();
         }
 
+    }, err => {
+        return database.close().then(() => { throw err; })
     }).then(managersList => {
         
-         inquirer
+        inquirer
               .prompt([
                   {
                     type: 'list',
@@ -281,6 +303,8 @@ const viewAllEmployeesByMgr = () => {
                   }
               });
 
+    }).catch(err => {
+        console.log(err);
     });
 
 }
@@ -337,6 +361,8 @@ const addDepartment = () => {
                     return null;
                 }
 
+            }, err => {
+                return database.close().then(() => { throw err; })
             }).then(rows => {
 
                 if (rows !== null) {
@@ -348,6 +374,8 @@ const addDepartment = () => {
                     addDepartment();
                 }
                 
+            }).catch(err => {
+                console.log(err);
             });
 
         });
@@ -374,6 +402,8 @@ const addRole = () => {
             return deptList;
         }
 
+    }, err => {
+        return database.close().then(() => { throw err; })
     }).then(deptList => {
 
         if (deptList === null) {
@@ -426,6 +456,8 @@ const addRole = () => {
 
                     return database.query(insertOrIgnoreRole, [title, salary, dept_id]);
 
+                }, err => {
+                    return database.close().then(() => { throw err; })
                 }).then(rows => {
 
                         if (rows.insertId !== 0) {
@@ -438,10 +470,14 @@ const addRole = () => {
 
                 }).then(() => {
                         askQuestions();
+                }).catch(err => {
+                    console.log(err);
                 });
 
         });
 
+    }).catch(err => {
+        console.log(err);
     });
 
 }
@@ -470,6 +506,8 @@ const addEmployee = () => {
             return null;
         }
 
+    }, err => {
+        return database.close().then(() => { throw err; })
     }).then(rows => {
 
         if (rows === null) {
@@ -542,6 +580,8 @@ const addEmployee = () => {
                         return manager_id;
                     }
 
+                }, err => {
+                    return database.close().then(() => { throw err; })
                 }).then(rows => {
 
                     if (rows !== null) {
@@ -556,6 +596,8 @@ const addEmployee = () => {
 
                     return database.query(insertNewEmployee, [first_name, last_name, role_id, manager_id]);
 
+                }, err => {
+                    return database.close().then(() => { throw err; })
                 }).then(rows => {
                     
                     if (rows.insertId !== 0) {
@@ -568,10 +610,119 @@ const addEmployee = () => {
 
                 }).then(() => {
                     askQuestions();
+                }).catch(err => {
+                    console.log(err);
                 });
 
             });
 
+    }).catch(err => {
+        console.log(err);
+    });
+
+}
+
+const assignRoleToDept = () => {
+
+    //Select a role to be assigned to a department:
+    let jobTitleList = [];
+    let deptList = [];
+    let dept_id;
+    let title;
+
+    const query = new Queries();
+    const viewAllRoles = query.viewAllRoles();
+  
+    database.query(viewAllRoles).then(rows => {
+
+        if (rows.length > 0) {
+
+            jobTitleList = createList(rows, 'title');
+    
+            const query = new Queries();
+            const viewAllDepartments = query.viewAllDepartments();
+
+            return database.query(viewAllDepartments);
+
+        }
+        else {
+            return null;
+        }
+
+    }, err => {
+        return database.close().then(() => { throw err; })
+    }).then(rows => {
+
+        if (rows === null) {
+            console.log("There are no job titles in the database to assign departments to.");
+            askQuestions();
+        }
+
+        if (rows.length > 0) {
+            deptList = createList(rows, 'department');
+        }
+        else {
+            console.log("There are no departments in the database to assign a role to.");
+            askQuestions();
+        }
+
+        inquirer
+        .prompt([
+            {
+                type: 'list',
+                name: 'title',
+                message: 'Select the role you want to assign a department to:',
+                choices: jobTitleList
+            },
+            {
+                type: 'list',
+                name: 'dept',
+                message: 'Select the department you want to assign to this role:',
+                choices: deptList
+            }
+
+        ])
+        .then(answers => {
+
+            title = answers.title;
+            let dept = answers.dept;
+
+            const query = new Queries();
+            const viewDepartmentIdByName = query.viewDepartmentIdByName();
+
+            return database.query(viewDepartmentIdByName, dept);
+
+        }, err => {
+            return database.close().then(() => { throw err; })
+        }).then(rows => {
+            dept_id = rows[0].id;
+
+            const query = new Queries();
+            const assignDeptIdToRole = query.assignDeptIdToRole();
+
+            return database.query(assignDeptIdToRole, [dept_id, title]);
+
+        }, err => {
+            return database.close().then(() => { throw err; })
+        }).then(rows => {
+
+            if (rows.affectedRows > 0) {
+                console.log("Matching roles have been assigned to this department.");
+                askQuestions();
+            }
+
+            const query = new Queries();
+            const assignDeptIdToRole = query.assignDeptIdToRole();
+
+            return database.query(assignDeptIdToRole, [dept_id, title]);
+
+
+        }).catch(err => {
+            console.log(err);
+        });
+
+    }).catch(err => {
+        console.log(err);
     });
 
 }
@@ -597,6 +748,8 @@ const removeEmployee = () => {
             askQuestions();
         }
 
+    }, err => {
+        return database.close().then(() => { throw err; })
     }).then(employeeList => {
 
         inquirer
@@ -630,6 +783,8 @@ const removeEmployee = () => {
 
                     return database.query(updateEmployeesUnderRemovedManager, employee_id);
                 
+                }, err => {
+                    return database.close().then(() => { throw err; })
                 }).then(rows => {
 
                     const query = new Queries();
@@ -637,6 +792,8 @@ const removeEmployee = () => {
 
                     return database.query(removeEmployeeById, employee_id);
 
+                }, err => {
+                    return database.close().then(() => { throw err; })
                 }).then(rows => {
 
                     if (rows.affectedRows === 1) {
@@ -648,12 +805,210 @@ const removeEmployee = () => {
 
                 }).then(() => {
                     askQuestions();
+                }).catch(err => {
+                    console.log(err);
                 });
 
             });
 
+    }).catch(err => {
+        console.log(err);
     });
 
+}
+
+const removeDepartment = () => {
+
+    let deptList = [];
+    let dept_id;
+
+    const query = new Queries();
+    const viewAllDepartments = query.viewAllDepartments();
+
+    database.query(viewAllDepartments).then(rows => {
+
+        if (rows.length > 0) {
+
+            deptList = createList(rows, 'department'); 
+            return deptList;
+
+        }
+        else {
+            return null;
+        }
+
+    }, err => {
+        return database.close().then(() => { throw err; })
+    }).then(deptList => {
+
+        if (deptList === null) {
+            console.log('There are no departments in the database to remove.');
+            return;
+        }
+
+        inquirer
+            .prompt([
+                {
+                    type: 'list',
+                    name: 'dept',
+                    message: 'Select the department you want to remove.',
+                    choices: deptList
+                }
+            ])
+            .then(answers => {
+
+                let { dept } = answers;
+
+                const query = new Queries();
+                const viewDeptIdByName = query.viewDeptIdByName();
+
+                database.query(viewDeptIdByName, dept).then(rows => {
+
+                    dept_id = rows[0].id;
+
+                    const query = new Queries();
+                    const removeDepartmentById = query.removeDepartmentById();
+    
+                    return database.query(removeDepartmentById, dept_id);
+                    
+                    }, err => {
+                        return database.close().then(() => { throw err; })
+                    }).then(rows => {
+
+                        if (rows.affectedRows === 1) {
+                            console.log("Department removed from the database.");
+                        }
+                        else {
+                            console.log("Failed to remove department removed from the database.");
+                        }
+
+                        const query = new Queries();
+                        const viewRoleIdByDeptId = query.viewRoleIdByDeptId();
+    
+                        return database.query(viewRoleIdByDeptId, dept_id);
+
+                    }, err => {
+                        return database.close().then(() => { throw err; })
+                    }).then(rows => {
+
+                    if (rows.length > 0) {
+                        for (let i = 0; i < rows.length; i++) {
+                            const query = new Queries();
+                            const updateDeptRoleUnderRemovedDept = query.updateDeptRoleUnderRemovedDept();
+    
+                            database.query(updateDeptRoleUnderRemovedDept, rows[i].id);
+    
+                        }
+                    }
+                    return;
+                    
+                }, err => {
+                    return database.close().then(() => { throw err; })
+                }).then(() => {
+                    console.log("Roles have been updated.");
+                }).then(() => {
+                    askQuestions();
+                }).catch(err => {
+                    console.log(err);
+                });
+            });
+    }).catch(err => {
+        console.log(err);
+    });
+
+}
+
+const removeRole = () => {
+
+    let jobTitleList = [];
+    let role_id;
+
+    const query = new Queries();
+    const viewAllRoles = query.viewAllRoles();
+  
+    database.query(viewAllRoles).then(rows => {
+
+        if (rows.length > 0) {
+
+            jobTitleList = createList(rows, 'title');
+    
+            const query = new Queries();
+            const viewAllEmployeeNames = query.viewAllEmployeeNames();
+
+            return database.query(viewAllEmployeeNames);
+
+        }
+        else {
+            return null;
+        }
+
+    }, err => {
+        return database.close().then(() => { throw err; })
+    }).then(rows => {
+
+        if (rows === null) {
+            console.log("There are no job titles in the database to remove.");
+            return;
+        }
+
+        inquirer
+            .prompt([
+                {
+                    type: 'list',
+                    name: 'title',
+                    message: 'Select the job title you want to remove:',
+                    choices: jobTitleList
+                }
+            ]).then(answer => {
+
+                const { title } = answer;
+
+                const query = new Queries();
+                const viewRoleIdByName = query.viewRoleIdByName();
+            
+                database.query(viewRoleIdByName, title).then(rows => {
+
+                    role_id = rows[0].id;
+
+                    const query = new Queries();
+                    const removeRoleById = query.removeRoleById();
+            
+                    return database.query(removeRoleById, role_id);
+
+                }, err => {
+                    return database.close().then(() => { throw err; })
+                }).then(rows => {
+
+                    if (rows.affectedRows > 0) {
+                        console.log(`Role has been removed from the database.`);
+                    }
+                    else {
+                        console.log("Failed to remove role from the database.");
+                    }
+
+                    const query = new Queries();
+                    const updateEmployeeRoleIdUnderRemovedRole = query.updateEmployeeRoleIdUnderRemovedRole();
+            
+                    return database.query(updateEmployeeRoleIdUnderRemovedRole, role_id);
+                         
+                }, err => {
+                    return database.close().then(() => { throw err; })
+                }).then(rows => {
+
+                    if (rows.affectedRows > 0) {
+                        console.log("Employee roles have been updated.");
+                        return;                  
+                    }
+                    
+                }).then(() => {
+                    askQuestions();
+                }).catch(err => {
+                    console.log(err);
+                });
+            });        
+    }).catch(err => {
+        console.log(err);
+    });
 }
 
 const updateEmployeeRole = () => {
@@ -680,6 +1035,8 @@ const updateEmployeeRole = () => {
             askQuestions();
         }
 
+    }, err => {
+        return database.close().then(() => { throw err; })
     }).then(employeeList => {
 
         inquirer
@@ -710,6 +1067,8 @@ const updateEmployeeRole = () => {
                 
                     return database.query(viewAllRoles);
                     
+                }, err => {
+                    return database.close().then(() => { throw err; })
                 }).then(rows => {
 
                     jobTitleList = createList(rows, 'title');
@@ -732,6 +1091,8 @@ const updateEmployeeRole = () => {
 
                             return database.query(viewRoleIdByName, title);
 
+                        }, err => {
+                            return database.close().then(() => { throw err; })
                         }).then(rows => {
 
                             role_id = rows[0].id;
@@ -741,19 +1102,24 @@ const updateEmployeeRole = () => {
                             
                             return database.query(updateEmployeeRoleId, [role_id, employee_id]);
                                 
+                        }, err => {
+                            return database.close().then(() => { throw err; })
                         }).then(rows => {
 
                             if (rows.changedRows === 1) {
                                 console.log("Updated employee job title");
+                                askQuestions();
                             }
                             else {
                                 console.log("This employee has already been assigned this job title.");
                             }
 
-                        }).then(() => {
-                            askQuestions();
+                        }).catch(err => {
+                            console.log(err);
                         });
 
+                }).catch(err => {
+                    console.log(err);
                 });
             });
 
@@ -793,6 +1159,8 @@ const updateEmployeeManager = () => {
             askQuestions();
         }
 
+    }, err => {
+        return database.close().then(() => { throw err; })
     }).then(() => {
 
         inquirer
@@ -845,6 +1213,8 @@ const updateEmployeeManager = () => {
                         return manager_id;
                     }
                     
+                }, err => {
+                    return database.close().then(() => { throw err; })
                 }).then(rows => {
 
                     if (rows !== null) {
@@ -865,6 +1235,8 @@ const updateEmployeeManager = () => {
 
                     }
 
+                }, err => {
+                    return database.close().then(() => { throw err; })
                 }).then(rows => {
 
                     if (rows === null) {
@@ -879,11 +1251,14 @@ const updateEmployeeManager = () => {
 
                 }).then(() => {
                     askQuestions();
+                }).catch(err => {
+                    console.log(err);
                 });
-
 
         });
 
+    }).catch(err => {
+        console.log(err);
     });
 
 }
@@ -950,17 +1325,22 @@ const splitName = name => {
 
 }
 
-const initialCaps = word => {
+const initialCaps = words => {
 
-    let first_letter = word.substr(0, 1);
+    words = words.split(" ");
 
-    let first_letter_cap = first_letter.toUpperCase();
-
-    let restOfString = word.substr(1);
-
-    let full_word = first_letter_cap + restOfString;
-
-    return full_word;
+    let capitalized_words = "";
+    
+    for (let i = 0; i < words.length; i++) {
+        const first_letter = words[i].substring(0, 1);
+        const rest_of_word = words[i].substr(1);
+        const capital_letter = first_letter.toUpperCase();
+        capitalized_words += capital_letter + rest_of_word + " ";
+    }
+    
+    capitalized_words = capitalized_words.trim();
+    
+    return capitalized_words;
 
 }
 

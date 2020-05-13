@@ -4,7 +4,11 @@ SELECT * FROM employee;
 SELECT * FROM department;
 SELECT * FROM role;
 
-SELECT title from role;
+SELECT role.id, role.title FROM role;
+
+SELECT employee.id, CONCAT(employee.first_name, ' ', employee.last_name) AS employee_name FROM employee;
+
+update role set salary = 150000 WHERE title = 'Senior lawyer';
 
 -- View All Employees --
 SELECT employee.id, employee.first_name, employee.last_name, role.title, dept.name AS department, 
@@ -14,23 +18,31 @@ LEFT JOIN department dept on role.department_id = dept.id
 LEFT JOIN employee manager on manager.id = employee.manager_id;
 
 -- View All Departments --
-SELECT department.name AS department FROM department;
+SELECT department.id, department.name AS department FROM department;
 
--- View All Employees By Role --
+-- View All Employees By Role Id --
 SELECT employee.id, employee.first_name, employee.last_name, role.title, dept.name AS department, 
-role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee 
-LEFT JOIN role on employee.role_id = role.id 
-LEFT JOIN department dept on role.department_id = dept.id 
-LEFT JOIN employee manager on manager.id = employee.manager_id
-WHERE role.title = 'Web Developer II';
+      role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee 
+      LEFT JOIN role on employee.role_id = role.id 
+      LEFT JOIN department dept on role.department_id = dept.id 
+      LEFT JOIN employee manager on manager.id = employee.manager_id
+      WHERE role.id = 2;
  
--- View All Employees by Department --
+-- View All Employees by Department Id --
 SELECT employee.id, employee.first_name, employee.last_name, role.title, dept.name AS department, 
-role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee 
-LEFT JOIN role on employee.role_id = role.id 
-LEFT JOIN department dept on role.department_id = dept.id 
-LEFT JOIN employee manager on manager.id = employee.manager_id
-WHERE dept.name = 'Sales';
+      role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee 
+      LEFT JOIN role on employee.role_id = role.id 
+      LEFT JOIN department dept on role.department_id = dept.id 
+      LEFT JOIN employee manager on manager.id = employee.manager_id
+      WHERE dept.id = 11;
+
+-- View All Employees By Mangager ID --
+SELECT employee.id, employee.first_name, employee.last_name, role.title, dept.name AS department, 
+      role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee 
+      LEFT JOIN role on employee.role_id = role.id 
+      LEFT JOIN department dept on role.department_id = dept.id 
+      LEFT JOIN employee manager on manager.id = employee.manager_id
+      WHERE manager.id = 1;
  
 -- View All Managers IDs --
 SELECT employee.manager_id FROM employee WHERE employee.manager_id IS NOT NULL;
@@ -81,7 +93,7 @@ delete from employee where employee.id = 9;
 SELECT department.id FROM department WHERE department.name = 'Engineering';
 
 -- Resetting Auto Increment --
-ALTER TABLE department AUTO_INCREMENT = 5;
+ALTER TABLE department AUTO_INCREMENT = 9;
 ALTER TABLE role AUTO_INCREMENT = 8;
 ALTER TABLE employee AUTO_INCREMENT = 9;
 
@@ -105,11 +117,22 @@ UPDATE employee SET employee.manager_id = null WHERE employee.manager_id = 3;
 -- Remove Employee from Employee Table --
 DELETE FROM employee WHERE employee.id = ?;
 
--- Update Employee Role Id by Employee Id --
-UPDATE employee SET employee.role_id = 2 WHERE employee.id = 1;
+-- Remove Department from Department Table step 1 --
+DELETE FROM department WHERE department.id = ?;
+UPDATE role SET department_id = null WHERE department_id = ?;
+
+-- Remove Department from Department Table step 2 --
+SELECT id FROM role WHERE department_id = 11;
+UPDATE role SET department_id = null WHERE id = 20;
+
+USE employee_tracker_cms;
 
 select * from employee;
 select * from role;
+select * from department;
+
+-- Check For Duplicate Rows --
+SELECT role.title FROM role WHERE role.title = 'Sales Lead';
 
 -- Update Employee Manager --
 UPDATE employee SET employee.manager_id = null WHERE employee.id = 1;

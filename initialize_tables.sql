@@ -6,7 +6,7 @@ CREATE TABLE employee(
 	id int auto_increment not null,
     first_name varchar(30) not null,
     last_name varchar(30) not null,
-    role_id int not null,
+    role_id int null,
     manager_id int null,
     primary key (id)
 );
@@ -21,16 +21,17 @@ CREATE TABLE role(
 	id int auto_increment not null,
     title varchar(30) not null,
     salary decimal(30) not null,
-    department_id int not null,
+    department_id int null,
     primary key (id)
 );
 
+truncate table employee;
+truncate table role;
+truncate table department;
+
+
 ALTER TABLE department ADD UNIQUE (name);
 ALTER TABLE role ADD UNIQUE (title);
-
-SHOW INDEX FROM role;
-
-DROP INDEX title ON role;
 
 SELECT * FROM employee;
 SELECT * FROM department;

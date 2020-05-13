@@ -29,6 +29,9 @@ TRUNCATE TABLE employee;
 TRUNCATE TABLE role;
 TRUNCATE TABLE department;
 
+SHOW INDEX FROM department;
+DROP INDEX Key_name ON department;
+
 ALTER TABLE department ADD UNIQUE (name);
 ALTER TABLE role ADD UNIQUE (title);
 

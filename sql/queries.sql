@@ -88,5 +88,5 @@ SELECT role.title FROM role WHERE role.title = 'Sales Lead';
 UPDATE employee SET employee.manager_id = null WHERE employee.id = 1;
 
 -- Adding a new record to Employees Table and setting the id --
-INSERT INTO employee (id, first_name, last_name, role_id, manager_id) 
-VALUES (8, "Ben", "Fisher", 2, 1); 
+INSERT INTO role (id, title, salary, department_id) 
+VALUES (8, "Paralegal", "80000", 4); 

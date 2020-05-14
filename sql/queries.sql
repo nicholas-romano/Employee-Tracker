@@ -48,8 +48,8 @@ SELECT department.id FROM department WHERE department.name = 'Engineering';
 
 -- Resetting Auto Increment --
 ALTER TABLE department AUTO_INCREMENT = 6;
-ALTER TABLE role AUTO_INCREMENT = 13;
-ALTER TABLE employee AUTO_INCREMENT = 14;
+ALTER TABLE role AUTO_INCREMENT = 14;
+ALTER TABLE employee AUTO_INCREMENT = 17;
 
 DELETE FROM role WHERE role.id = 13;
 
